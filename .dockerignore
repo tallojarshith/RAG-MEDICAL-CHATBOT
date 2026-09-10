@@ -1,0 +1,13 @@
+medi/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+logs/
+*.log
+.env
+custom_jenkins/
+.vscode/
+.idea/
+.ipynb_checkpoints/

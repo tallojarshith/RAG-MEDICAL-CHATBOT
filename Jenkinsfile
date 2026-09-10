@@ -19,15 +19,15 @@ pipeline {
             }
         }
 
-        // stage('Build Docker Image') {
-        //     steps {
-        //         script {
-        //             sh """
-        //             docker build -t ${ECR_REPO}:${IMAGE_TAG} .
-        //             """
-        //         }
-        //     }
-        // }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                    docker build -t ${ECR_REPO}:${IMAGE_TAG} .
+                    """
+                }
+            }
+        }
 
         // stage('Scan Docker Image with Trivy') {
         //     steps {

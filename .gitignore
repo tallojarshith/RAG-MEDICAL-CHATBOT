@@ -1,4 +1,7 @@
 medi/
+.env
 logs/
 RAG_Medical_Chatbot.egg-info/
-.env
+vectorstore/
+__pycache__/
+*.pyc

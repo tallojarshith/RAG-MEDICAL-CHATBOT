@@ -1,0 +1,715 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>MedAssist AI | Medical RAG Chatbot</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(43, 144, 217, 0.18), transparent 35%),
+                radial-gradient(circle at bottom right, rgba(32, 178, 170, 0.15), transparent 35%),
+                #f4f8fc;
+            color: #1d2a38;
+        }
+
+        /* ================= NAVBAR ================= */
+
+        .navbar {
+            height: 72px;
+            padding: 0 6%;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #e4edf5;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.04);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #1677ff, #19b5a5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 23px;
+            box-shadow: 0 6px 18px rgba(22, 119, 255, 0.25);
+        }
+
+        .brand-text h2 {
+            font-size: 20px;
+            color: #17324d;
+        }
+
+        .brand-text span {
+            font-size: 12px;
+            color: #74879a;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 30px;
+            background: #eafaf4;
+            color: #137c5b;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22b573;
+            box-shadow: 0 0 0 4px rgba(34, 181, 115, 0.12);
+        }
+
+        /* ================= PAGE ================= */
+
+        .page-wrapper {
+            width: 94%;
+            max-width: 1200px;
+            margin: 32px auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .hero h1 {
+            font-size: 34px;
+            color: #16324f;
+            margin-bottom: 10px;
+        }
+
+        .hero h1 span {
+            color: #1677ff;
+        }
+
+        .hero p {
+            max-width: 700px;
+            margin: auto;
+            color: #64798d;
+            line-height: 1.7;
+            font-size: 15px;
+        }
+
+        /* ================= MAIN CHAT CARD ================= */
+
+        .chat-container {
+            max-width: 900px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid #e6eef6;
+            box-shadow: 0 20px 60px rgba(42, 70, 100, 0.12);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #145fa8, #168fb8);
+            padding: 24px 28px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .assistant-profile {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .assistant-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 27px;
+        }
+
+        .assistant-profile h3 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .assistant-profile p {
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        .rag-badge {
+            padding: 7px 13px;
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* ================= ERROR ================= */
+
+        .error-box {
+            margin: 18px 24px 0;
+            padding: 13px 16px;
+            color: #9f1c1c;
+            background: #fff0f0;
+            border: 1px solid #ffd0d0;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        /* ================= CHAT BODY ================= */
+
+        #chat-box {
+            height: 480px;
+            overflow-y: auto;
+            padding: 28px;
+            background:
+                linear-gradient(rgba(247, 250, 253, 0.85), rgba(247, 250, 253, 0.85));
+            scroll-behavior: smooth;
+        }
+
+        #chat-box::-webkit-scrollbar {
+            width: 7px;
+        }
+
+        #chat-box::-webkit-scrollbar-thumb {
+            background: #c4d4e4;
+            border-radius: 20px;
+        }
+
+        .welcome-message {
+            text-align: center;
+            margin: 35px auto;
+            max-width: 530px;
+        }
+
+        .welcome-icon {
+            width: 78px;
+            height: 78px;
+            margin: auto auto 18px;
+            border-radius: 22px;
+            background: linear-gradient(135deg, #e5f2ff, #e2faf5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+
+        .welcome-message h3 {
+            color: #193b5a;
+            margin-bottom: 10px;
+            font-size: 22px;
+        }
+
+        .welcome-message p {
+            color: #718497;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .message-row {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .message-row.user-row {
+            justify-content: flex-end;
+        }
+
+        .message-row.assistant-row {
+            justify-content: flex-start;
+        }
+
+        .message {
+            max-width: 75%;
+            padding: 14px 17px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.65;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.user {
+            color: white;
+            background: linear-gradient(135deg, #1677ff, #3b8ff3);
+            border-bottom-right-radius: 5px;
+            box-shadow: 0 6px 16px rgba(22, 119, 255, 0.18);
+        }
+
+        .message.assistant {
+            color: #25394d;
+            background: white;
+            border: 1px solid #e3ebf3;
+            border-bottom-left-radius: 5px;
+            box-shadow: 0 5px 18px rgba(35, 68, 100, 0.07);
+        }
+
+        .message-label {
+            display: block;
+            font-size: 11px;
+            margin-bottom: 5px;
+            font-weight: 700;
+            opacity: 0.75;
+            letter-spacing: 0.2px;
+        }
+
+        /* ================= INPUT AREA ================= */
+
+        .input-section {
+            padding: 18px 22px 14px;
+            background: white;
+            border-top: 1px solid #e8eef4;
+        }
+
+        .input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            background: #f5f8fb;
+            border: 1px solid #dae5ef;
+            padding: 10px;
+            border-radius: 17px;
+            transition: 0.25s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: #1677ff;
+            box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.08);
+            background: white;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 48px;
+            max-height: 130px;
+            border: none;
+            outline: none;
+            resize: none;
+            background: transparent;
+            padding: 12px 10px;
+            color: #25394d;
+            font-size: 15px;
+            font-family: inherit;
+        }
+
+        textarea::placeholder {
+            color: #94a6b8;
+        }
+
+        .send-btn {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            color: white;
+            background: linear-gradient(135deg, #1677ff, #15a6a2);
+            font-size: 20px;
+            transition: 0.25s ease;
+            flex-shrink: 0;
+            box-shadow: 0 5px 14px rgba(22, 119, 255, 0.25);
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 19px rgba(22, 119, 255, 0.32);
+        }
+
+        .chat-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 11px 5px 0;
+        }
+
+        .hint {
+            color: #96a5b3;
+            font-size: 11px;
+        }
+
+        .clear-btn {
+            border: none;
+            background: transparent;
+            color: #788b9d;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 5px;
+        }
+
+        .clear-btn:hover {
+            color: #d14646;
+        }
+
+        /* ================= DISCLAIMER ================= */
+
+        .disclaimer {
+            max-width: 900px;
+            margin: 18px auto 0;
+            padding: 14px 18px;
+            background: rgba(255, 250, 230, 0.9);
+            border: 1px solid #f2dfaa;
+            border-radius: 12px;
+            display: flex;
+            gap: 11px;
+            align-items: flex-start;
+            color: #705b24;
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .disclaimer-icon {
+            font-size: 17px;
+        }
+
+        footer {
+            text-align: center;
+            color: #91a0af;
+            font-size: 12px;
+            padding: 30px 0;
+        }
+
+        /* ================= RESPONSIVE ================= */
+
+        @media (max-width: 700px) {
+
+            .navbar {
+                padding: 0 4%;
+            }
+
+            .brand-text span {
+                display: none;
+            }
+
+            .status-badge {
+                font-size: 11px;
+                padding: 7px 10px;
+            }
+
+            .page-wrapper {
+                width: 96%;
+                margin-top: 20px;
+            }
+
+            .hero h1 {
+                font-size: 27px;
+            }
+
+            .hero p {
+                font-size: 13px;
+                padding: 0 10px;
+            }
+
+            .chat-container {
+                border-radius: 18px;
+            }
+
+            .chat-header {
+                padding: 18px;
+            }
+
+            .rag-badge {
+                display: none;
+            }
+
+            #chat-box {
+                height: 430px;
+                padding: 18px;
+            }
+
+            .message {
+                max-width: 88%;
+            }
+
+            .input-section {
+                padding: 14px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ================= NAVBAR ================= -->
+    <nav class="navbar">
+
+        <div class="brand">
+            <div class="brand-icon">⚕️</div>
+
+            <div class="brand-text">
+                <h2>MedAssist AI</h2>
+                <span>Retrieval-Augmented Medical Intelligence</span>
+            </div>
+        </div>
+
+        <div class="status-badge">
+            <span class="status-dot"></span>
+            AI Assistant Online
+        </div>
+
+    </nav>
+
+
+    <!-- ================= PAGE ================= -->
+    <main class="page-wrapper">
+
+        <section class="hero">
+
+            <h1>
+                Your <span>AI Medical Knowledge</span> Assistant
+            </h1>
+
+            <p>
+                Ask medical questions and receive concise answers generated
+                using information retrieved from trusted medical documents
+                through a Retrieval-Augmented Generation pipeline.
+            </p>
+
+        </section>
+
+
+        <!-- ================= CHAT ================= -->
+        <section class="chat-container">
+
+            <div class="chat-header">
+
+                <div class="assistant-profile">
+
+                    <div class="assistant-avatar">
+                        🩺
+                    </div>
+
+                    <div>
+                        <h3>Medical RAG Assistant</h3>
+                        <p>Grounded answers from medical knowledge base</p>
+                    </div>
+
+                </div>
+
+                <div class="rag-badge">
+                    RAG Enabled
+                </div>
+
+            </div>
+
+
+            {% if error %}
+
+                <div class="error-box">
+                    ⚠️ {{ error }}
+                </div>
+
+            {% endif %}
+
+
+            <div id="chat-box">
+
+                {% if not messages %}
+
+                    <div class="welcome-message">
+
+                        <div class="welcome-icon">
+                            🧬
+                        </div>
+
+                        <h3>How can I help you today?</h3>
+
+                        <p>
+                            Ask a question about symptoms, diseases,
+                            treatments or other information contained
+                            in the medical knowledge base.
+                        </p>
+
+                    </div>
+
+                {% endif %}
+
+
+                {% for msg in messages %}
+
+                    {% if msg.role == "user" %}
+
+                        <div class="message-row user-row">
+
+                            <div class="message user">
+
+                                <span class="message-label">
+                                    YOU
+                                </span>
+
+                                {{ msg.content | safe | nl2br }}
+
+                            </div>
+
+                        </div>
+
+                    {% else %}
+
+                        <div class="message-row assistant-row">
+
+                            <div class="message assistant">
+
+                                <span class="message-label">
+                                    🩺 MEDASSIST AI
+                                </span>
+
+                                {{ msg.content | safe | nl2br }}
+
+                            </div>
+
+                        </div>
+
+                    {% endif %}
+
+                {% endfor %}
+
+            </div>
+
+
+            <!-- ================= INPUT ================= -->
+            <div class="input-section">
+
+                <form method="post"
+                      action="{{ url_for('index') }}">
+
+                    <div class="input-wrapper">
+
+                        <textarea
+                            name="prompt"
+                            placeholder="Ask a medical question..."
+                            required
+                            autofocus></textarea>
+
+                        <button
+                            type="submit"
+                            class="send-btn"
+                            title="Send message">
+                            ➤
+                        </button>
+
+                    </div>
+
+                </form>
+
+
+                <div class="chat-actions">
+
+                    <span class="hint">
+                        Answers are generated from retrieved medical documents.
+                    </span>
+
+
+                    <form method="get"
+                          action="{{ url_for('clear') }}">
+
+                        <button
+                            type="submit"
+                            class="clear-btn">
+
+                            🗑 Clear conversation
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= MEDICAL DISCLAIMER ================= -->
+        <div class="disclaimer">
+
+            <span class="disclaimer-icon">
+                ⚠️
+            </span>
+
+            <div>
+                <strong>Medical Disclaimer:</strong>
+                This AI system is intended for educational and informational
+                purposes only. It does not replace professional medical
+                diagnosis, treatment, or advice. For medical concerns,
+                consult a qualified healthcare professional.
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <footer>
+        MedAssist AI • Medical RAG Chatbot • Powered by Retrieval-Augmented Generation
+    </footer>
+
+
+    <script>
+
+        // Automatically scroll to the latest message
+        const chatBox = document.getElementById("chat-box");
+
+        if (chatBox) {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+
+        // Allow Enter to submit and Shift + Enter for a new line
+        const textarea = document.querySelector("textarea");
+
+        if (textarea) {
+
+            textarea.addEventListener("keydown", function(event) {
+
+                if (
+                    event.key === "Enter" &&
+                    !event.shiftKey
+                ) {
+
+                    event.preventDefault();
+
+                    this.form.submit();
+
+                }
+
+            });
+
+        }
+
+    </script>
+
+</body>
+</html>
+```

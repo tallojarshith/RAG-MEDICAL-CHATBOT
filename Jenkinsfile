@@ -1,12 +1,12 @@
 pipeline {
     agent any
 
-    // environment {
-    //     AWS_REGION = 'us-east-1'
-    //     ECR_REPO = 'my-repo'
-    //     IMAGE_TAG = 'latest'
-    //     SERVICE_NAME = 'llmops-medical-service'
-    // }
+    environment {
+        AWS_REGION = 'ap-south-1'
+        ECR_REPO = 'myrepo'
+        IMAGE_TAG = 'latest'
+        SERVICE_NAME = 'llmops-medical-service'
+    }
 
     stages {
 
@@ -46,42 +46,42 @@ pipeline {
         //     }
         // }
 
-        // stage('Push Docker Image to ECR') {
-        //     steps {
-        //         withCredentials([
-        //             [$class: 'AmazonWebServicesCredentialsBinding',
-        //              credentialsId: 'aws-token']
-        //         ]) {
-        //             script {
+        stage('Push Docker Image to ECR') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-token']
+                ]) {
+                    script {
 
-        //                 def accountId = sh(
-        //                     script: "aws sts get-caller-identity --query Account --output text",
-        //                     returnStdout: true
-        //                 ).trim()
+                        def accountId = sh(
+                            script: "aws sts get-caller-identity --query Account --output text",
+                            returnStdout: true
+                        ).trim()
 
-        //                 def ecrRegistry =
-        //                     "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+                        def ecrRegistry =
+                            "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
-        //                 def imageFullTag =
-        //                     "${ecrRegistry}/${ECR_REPO}:${IMAGE_TAG}"
+                        def imageFullTag =
+                            "${ecrRegistry}/${ECR_REPO}:${IMAGE_TAG}"
 
-        //                 sh """
-        //                 aws ecr get-login-password \
-        //                 --region ${AWS_REGION} \
-        //                 | docker login \
-        //                 --username AWS \
-        //                 --password-stdin ${ecrRegistry}
+                        sh """
+                        aws ecr get-login-password \
+                        --region ${AWS_REGION} \
+                        | docker login \
+                        --username AWS \
+                        --password-stdin ${ecrRegistry}
 
-        //                 docker tag \
-        //                 ${ECR_REPO}:${IMAGE_TAG} \
-        //                 ${imageFullTag}
+                        docker tag \
+                        ${ECR_REPO}:${IMAGE_TAG} \
+                        ${imageFullTag}
 
-        //                 docker push ${imageFullTag}
-        //                 """
-        //             }
-        //         }
-        //     }
-        // }
+                        docker push ${imageFullTag}
+                        """
+                    }
+                }
+            }
+        }
 
         // stage('Deploy to AWS App Runner') {
         //     steps {

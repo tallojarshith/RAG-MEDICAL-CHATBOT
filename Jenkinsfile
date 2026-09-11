@@ -6,6 +6,7 @@ pipeline {
         ECR_REPO = 'myrepo'
         IMAGE_TAG = 'latest'
         SERVICE_NAME = 'llmops-medical-service'
+        EC2_INSTANCE_ID = 'i-0953f463ef4b80c0a'
     }
 
     stages {
@@ -13,6 +14,7 @@ pipeline {
         stage('Clone GitHub Repo') {
             steps {
                 echo 'Cloning GitHub repository...'
+
                 checkout scmGit(
                     branches: [[name: '*/main']],
                     extensions: [],
@@ -46,8 +48,10 @@ pipeline {
                     """
                 }
 
-                archiveArtifacts artifacts: 'trivy-report.json',
-                                 allowEmptyArchive: true
+                archiveArtifacts(
+                    artifacts: 'trivy-report.json',
+                    allowEmptyArchive: true
+                )
             }
         }
 
@@ -60,7 +64,11 @@ pipeline {
                     script {
 
                         def accountId = sh(
-                            script: "aws sts get-caller-identity --query Account --output text",
+                            script: """
+                            aws sts get-caller-identity \
+                            --query Account \
+                            --output text
+                            """,
                             returnStdout: true
                         ).trim()
 
@@ -82,6 +90,47 @@ pipeline {
                         ${imageFullTag}
 
                         docker push ${imageFullTag}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Test SSM Connection') {
+            steps {
+                withCredentials([
+                    [$class: 'AmazonWebServicesCredentialsBinding',
+                     credentialsId: 'aws-token']
+                ]) {
+                    script {
+
+                        def commandId = sh(
+                            script: """
+                            aws ssm send-command \
+                            --instance-ids ${EC2_INSTANCE_ID} \
+                            --document-name "AWS-RunShellScript" \
+                            --parameters 'commands=["echo Jenkins-SSM-OK"]' \
+                            --region ${AWS_REGION} \
+                            --query "Command.CommandId" \
+                            --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        echo "SSM Command ID: ${commandId}"
+
+                        sh """
+                        aws ssm wait command-executed \
+                        --command-id ${commandId} \
+                        --instance-id ${EC2_INSTANCE_ID} \
+                        --region ${AWS_REGION}
+
+                        aws ssm get-command-invocation \
+                        --command-id ${commandId} \
+                        --instance-id ${EC2_INSTANCE_ID} \
+                        --region ${AWS_REGION} \
+                        --query "StandardOutputContent" \
+                        --output text
                         """
                     }
                 }

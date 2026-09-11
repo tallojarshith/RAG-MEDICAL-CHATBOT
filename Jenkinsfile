@@ -96,7 +96,7 @@ pipeline {
             }
         }
 
-        stage('Test SSM Connection') {
+        stage('Deploy to EC2') {
             steps {
                 withCredentials([
                     [$class: 'AmazonWebServicesCredentialsBinding',
@@ -104,12 +104,34 @@ pipeline {
                 ]) {
                     script {
 
+                        def accountId = sh(
+                            script: """
+                            aws sts get-caller-identity \
+                            --query Account \
+                            --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        def ecrRegistry =
+                            "${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+                        def imageFullTag =
+                            "${ecrRegistry}/${ECR_REPO}:${IMAGE_TAG}"
+
                         def commandId = sh(
                             script: """
                             aws ssm send-command \
                             --instance-ids ${EC2_INSTANCE_ID} \
                             --document-name "AWS-RunShellScript" \
-                            --parameters 'commands=["echo Jenkins-SSM-OK"]' \
+                            --parameters 'commands=[
+                                "aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ecrRegistry}",
+                                "docker pull ${imageFullTag}",
+                                "docker stop medical-rag-chatbot || true",
+                                "docker rm medical-rag-chatbot || true",
+                                "docker run -d --name medical-rag-chatbot --restart unless-stopped --env-file /home/ec2-user/.medical-rag.env -p 80:5000 ${imageFullTag}",
+                                "docker ps --filter name=medical-rag-chatbot"
+                            ]' \
                             --region ${AWS_REGION} \
                             --query "Command.CommandId" \
                             --output text
@@ -117,7 +139,7 @@ pipeline {
                             returnStdout: true
                         ).trim()
 
-                        echo "SSM Command ID: ${commandId}"
+                        echo "Deployment Command ID: ${commandId}"
 
                         sh """
                         aws ssm wait command-executed \
@@ -129,8 +151,8 @@ pipeline {
                         --command-id ${commandId} \
                         --instance-id ${EC2_INSTANCE_ID} \
                         --region ${AWS_REGION} \
-                        --query "StandardOutputContent" \
-                        --output text
+                        --query "{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}" \
+                        --output json
                         """
                     }
                 }
